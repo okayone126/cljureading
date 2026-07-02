@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>클쥬리딩 인증 관리</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f8f8f6;color:#1a1a18;min-height:100vh;}
+.wrap{max-width:680px;margin:0 auto;padding:1rem;}
+h1{font-size:16px;font-weight:600;color:#1a1a18;padding:1rem 0 0.5rem;display:flex;align-items:center;gap:8px;}
+h1 span{font-size:12px;font-weight:400;color:#888;margin-left:auto;}
+.tabs{display:flex;border-bottom:1px solid #e0dfd8;margin-bottom:1.5rem;}
+.tab-btn{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;cursor:pointer;font-size:14px;color:#888;margin-bottom:-1px;}
+.tab-btn.active{color:#1a7a5e;border-bottom-color:#1a7a5e;font-weight:500;}
+.tab{display:none;}
+.tab.active{display:block;}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+input[type=date]{font-size:14px;padding:6px 10px;border:1px solid #ddd;border-radius:8px;background:#fff;}
+.day-label{font-size:13px;color:#aaa;}
+textarea{width:100%;height:90px;font-size:12px;font-family:monospace;resize:none;padding:10px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#333;display:block;}
+.btn-row{display:flex;gap:8px;margin:8px 0 1.5rem;}
+button{padding:8px 16px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:14px;color:#333;}
+button:hover{background:#f0f0ee;}
+button.primary{background:#1a7a5e;color:#fff;border-color:#1a7a5e;}
+button.primary:hover{background:#15664f;}
+.member-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid #eee;}
+.member-info{flex:1;min-width:0;}
+.member-name{font-size:14px;}
+.member-msg{font-size:11px;color:#aaa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:360px;margin-top:2px;}
+.member-photo{font-size:11px;color:#1a7a5e;margin-top:2px;}
+.toggle{width:36px;height:36px;border-radius:50%;border:1px solid #ddd;background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;margin-left:8px;}
+.toggle.on{background:#e8f5f0;border-color:#1a7a5e;}
+.progress-bar{height:4px;background:#eee;border-radius:2px;margin:8px 0 0;}
+.progress-fill{height:4px;background:#1a7a5e;border-radius:2px;transition:width 0.3s;}
+.summary{padding:12px 0;text-align:center;font-size:13px;color:#888;}
+.nav-row{display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
+.nav-btn{width:36px;height:36px;padding:0;font-size:20px;display:flex;align-items:center;justify-content:center;}
+.nav-label{flex:1;text-align:center;font-size:14px;font-weight:500;}
+table{border-collapse:collapse;font-size:13px;}
+th,td{padding:6px 4px;border-bottom:1px solid #eee;text-align:center;}
+th{font-weight:500;font-size:12px;color:#888;}
+.name-col{text-align:left;white-space:nowrap;}
+.check-ok{color:#1a7a5e;font-size:16px;}
+.check-no{color:#ccc;}
+.cnt-good{color:#1a7a5e;font-weight:500;}
+.cnt-mid{color:#e0a020;font-weight:500;}
+.cnt-low{color:#aaa;}
+.export-area{width:100%;height:180px;font-size:12px;font-family:monospace;margin-top:10px;padding:10px;border:1px solid #ddd;border-radius:8px;background:#f8f8f6;color:#333;resize:none;}
+.save-ok{font-size:13px;color:#1a7a5e;min-height:18px;margin-top:6px;}
+.overflow{overflow-x:auto;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📚 클쥬리딩 인증 관리 <span id="today-badge"></span></h1>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('today',this)">오늘</button>
+    <button class="tab-btn" onclick="switchTab('week',this)">주간</button>
+    <button class="tab-btn" onclick="switchTab('month',this)">월간</button>
+  </div>
+
+  <!-- TODAY -->
+  <div id="tab-today" class="tab active">
+    <div class="row">
+      <input type="date" id="date-sel" oninput="onDateChange()" />
+      <span class="day-label" id="day-lbl"></span>
+    </div>
+    <textarea id="chat-in" placeholder="카톡 채팅 내용을 여기에 붙여넣으세요"></textarea>
+    <div class="btn-row">
+      <button class="primary" onclick="parseChat()" style="flex:1;">파싱하기</button>
+      <button onclick="document.getElementById('chat-in').value=''">지우기</button>
+    </div>
+    <div id="member-list" style="border-top:1px solid #eee;"></div>
+    <div class="btn-row" style="margin-top:1rem;margin-bottom:0;">
+      <button class="primary" onclick="saveDay()" style="flex:1;">저장</button>
+      <button onclick="resetDay()">초기화</button>
+    </div>
+    <p class="save-ok" id="save-ok"></p>
+  </div>
+
+  <!-- WEEK -->
+  <div id="tab-week" class="tab">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="prevWeek()">‹</button>
+      <span class="nav-label" id="week-lbl"></span>
+      <button class="nav-btn" onclick="nextWeek()">›</button>
+    </div>
+    <div class="overflow"><div id="week-tbl"></div></div>
+    <div class="btn-row" style="margin-top:1rem;margin-bottom:0;">
+      <button class="primary" onclick="exportWeek()" style="flex:1;">단톡방 공유 텍스트 내보내기</button>
+    </div>
+    <textarea class="export-area" id="week-export" style="display:none;" readonly onclick="this.select()"></textarea>
+  </div>
+
+  <!-- MONTH -->
+  <div id="tab-month" class="tab">
+    <div class="nav-row">
+      <button class="nav-btn" onclick="prevMonth()">‹</button>
+      <span class="nav-label" id="month-lbl"></span>
+      <button class="nav-btn" onclick="nextMonth()">›</button>
+    </div>
+    <div class="overflow"><div id="month-tbl"></div></div>
+    <div class="btn-row" style="margin-top:1rem;margin-bottom:0;">
+      <button class="primary" onclick="exportMonth()" style="flex:1;">단톡방 공유 텍스트 내보내기</button>
+    </div>
+    <textarea class="export-area" id="month-export" style="display:none;" readonly onclick="this.select()"></textarea>
+  </div>
+</div>
+
+<script>
+const MEMBERS = [
+  { id:'nangppa', display:'낭빠',     keys:['낭빠'] },
+  { id:'mina',    display:'통통',     keys:['통통'] },
+  { id:'hajun',   display:'하준맘세정', keys:['하준맘세정','세정'] },
+  { id:'hijjun',  display:'하이쭌',   keys:['하이쭌'] },
+  { id:'dobro',   display:'도브로맘', keys:['도브로맘','도브로'] },
+  { id:'bangul',  display:'방울킴',   keys:['방울킴','방울'] },
+  { id:'malli',   display:'말리꽃',   keys:['말리꽃','말리'] },
+  { id:'imbo',    display:'임보영',   keys:['임보영'] },
+  { id:'coco',    display:'코코박',   keys:['코코박'] },
+  { id:'dada',    display:'다다다맘', keys:['다다다맘','다다다'] },
+  { id:'pink',    display:'핑크돼지', keys:['핑크돼지','핑크'] },
+  { id:'ezy',     display:'ezy',      keys:['ezy'] }
+];
+
+const DAYS = ['월','화','수','목','금','토','일'];
+
+let todayState = {};
+let weekStart = getMonday(new Date());
+let curMonth = new Date();
+
+function getMonday(d) {
+  d = new Date(d);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day === 0 ? 6 : day - 1));
+  d.setHours(0,0,0,0);
+  return d;
+}
+
+function ds(d) { return d.toISOString().slice(0,10); }
+function fmt(d) { return (d.getMonth()+1) + '/' + d.getDate(); }
+function skAtt(dateStr) { return 'rtt_att_' + dateStr.replace(/-/g,''); }
+
+function loadAtt(dateStr) {
+  try { return JSON.parse(localStorage.getItem(skAtt(dateStr))) || null; }
+  catch(e) { return null; }
+}
+
+function saveAtt(dateStr, data) {
+  localStorage.setItem(skAtt(dateStr), JSON.stringify(data));
+}
+
+function emptyDay() {
+  const s = {};
+  MEMBERS.forEach(m => s[m.id] = { certified: false, msgs: [] });
+  return s;
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='week') renderWeek();
+  if (name==='month') renderMonth();
+}
+
+function onDateChange() {
+  updateDayLabel();
+  loadTodayState();
+}
+
+function updateDayLabel() {
+  const v = document.getElementById('date-sel').value;
+  if (!v) return;
+  const d = new Date(v + 'T00:00:00');
+  const dow = d.getDay();
+  document.getElementById('day-lbl').textContent = DAYS[dow===0?6:dow-1] + '요일';
+}
+
+function loadTodayState() {
+  const v = document.getElementById('date-sel').value;
+  todayState = loadAtt(v) || emptyDay();
+  renderMemberList();
+}
+
+function findMember(chatName) {
+  for (const m of MEMBERS) {
+    for (const k of m.keys) {
+      if (chatName.includes(k)) return m.id;
+    }
+  }
+  return null;
+}
+
+function parseChat() {
+  const text = document.getElementById('chat-in').value;
+  if (!text.trim()) return;
+  const msgMap = {};
+  const certSet = new Set();
+  text.split('\n').forEach(line => {
+    const match = line.match(/^\[(.+?)\] \[(오전|오후) \d+:\d+\] (.+)$/);
+    if (!match) return;
+    const mid = findMember(match[1]);
+    if (!mid) return;
+    const content = match[3].trim();
+    if (!msgMap[mid]) msgMap[mid] = [];
+    msgMap[mid].push(content);
+    if (content.includes('사진')) certSet.add(mid);
+  });
+  MEMBERS.forEach(m => {
+    if (!todayState[m.id]) todayState[m.id] = { certified: false, msgs: [] };
+    if (msgMap[m.id]) {
+      todayState[m.id].msgs = msgMap[m.id];
+      if (certSet.has(m.id)) todayState[m.id].certified = true;
+    }
+  });
+  renderMemberList();
+}
+
+function renderMemberList() {
+  const el = document.getElementById('member-list');
+  let certified = 0;
+  let html = '';
+  MEMBERS.forEach(m => {
+    const s = todayState[m.id] || { certified: false, msgs: [] };
+    if (s.certified) certified++;
+    const hasPhoto = (s.msgs||[]).some(x => x.includes('사진'));
+    const nonPhotoMsgs = (s.msgs||[]).filter(x => !x.includes('사진'));
+    html += `<div class="member-item">
+      <div class="member-info">
+        <div class="member-name">${m.display}</div>
+        ${hasPhoto ? '<div class="member-photo">사진 인증</div>' : ''}
+        ${nonPhotoMsgs.length>0 ? `<div class="member-msg">${nonPhotoMsgs.join(' / ')}</div>` : ''}
+      </div>
+      <button class="toggle ${s.certified?'on':''}" onclick="toggle('${m.id}')" title="${s.certified?'인증 취소':'인증 표시'}">
+        ${s.certified ? '✓' : ''}
+      </button>
+    </div>`;
+  });
+  const pct = Math.round(certified / MEMBERS.length * 100);
+  html += `<div class="summary"><strong>${certified}/${MEMBERS.length}명</strong> 인증 완료
+    <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+  </div>`;
+  el.innerHTML = html;
+}
+
+function toggle(id) {
+  if (!todayState[id]) todayState[id] = { certified: false, msgs: [] };
+  todayState[id].certified = !todayState[id].certified;
+  renderMemberList();
+}
+
+function saveDay() {
+  const v = document.getElementById('date-sel').value;
+  if (!v) return;
+  saveAtt(v, todayState);
+  const el = document.getElementById('save-ok');
+  el.textContent = '저장됐어요!';
+  setTimeout(() => el.textContent = '', 2000);
+}
+
+function resetDay() {
+  todayState = emptyDay();
+  renderMemberList();
+}
+
+// WEEK
+function prevWeek() { weekStart.setDate(weekStart.getDate()-7); renderWeek(); }
+function nextWeek() { weekStart.setDate(weekStart.getDate()+7); renderWeek(); }
+
+function renderWeek() {
+  const dates = [];
+  for (let i=0;i<7;i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate()+i);
+    dates.push(d);
+  }
+  document.getElementById('week-lbl').textContent = fmt(dates[0]) + ' (월) ~ ' + fmt(dates[6]) + ' (일)';
+
+  const att = {};
+  dates.forEach(d => att[ds(d)] = loadAtt(ds(d)) || {});
+
+  const todayStr = ds(new Date());
+  let html = '<table style="min-width:360px;width:100%;"><colgroup><col style="min-width:72px;"/>';
+  for(let i=0;i<7;i++) html += '<col style="width:36px;"/>';
+  html += '<col style="width:36px;"/></colgroup><tr><th></th>';
+  dates.forEach((d,i) => {
+    const isToday = ds(d)===todayStr;
+    const isWknd = i>=5;
+    html += `<th style="${isToday?'color:#1a7a5e;':isWknd?'color:#aaa;':''}">${DAYS[i]}<br><span style="font-weight:400;font-size:10px;">${fmt(d)}</span></th>`;
+  });
+  html += '<th>계</th></tr>';
+
+  MEMBERS.forEach(m => {
+    let cnt = 0;
+    html += `<tr><td class="name-col">${m.display}</td>`;
+    dates.forEach(d => {
+      const ok = att[ds(d)]?.[m.id]?.certified;
+      if(ok) cnt++;
+      html += `<td>${ok ? '<span class="check-ok">✓</span>' : '<span class="check-no">·</span>'}</td>`;
+    });
+    const cls = cnt>=5?'cnt-good':cnt>=3?'cnt-mid':'cnt-low';
+    html += `<td class="${cls}">${cnt}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('week-tbl').innerHTML = html;
+  document.getElementById('week-export').style.display = 'none';
+}
+
+function exportWeek() {
+  const dates = [];
+  for (let i=0;i<7;i++) {
+    const d = new Date(weekStart); d.setDate(d.getDate()+i); dates.push(d);
+  }
+  const att = {};
+  dates.forEach(d => att[ds(d)] = loadAtt(ds(d)) || {});
+
+  let text = '📚 클쥬리딩 주간 현황\n';
+  text += fmt(dates[0]) + '(월) ~ ' + fmt(dates[6]) + '(일)\n';
+  text += '─'.repeat(26) + '\n';
+  MEMBERS.forEach(m => {
+    let cnt = 0;
+    let row = '';
+    dates.forEach((d,i) => {
+      const ok = att[ds(d)]?.[m.id]?.certified;
+      if(ok) cnt++;
+      row += ok ? DAYS[i] : '·';
+    });
+    const name = (m.display + '          ').slice(0,9);
+    text += name + ' ' + row.split('').join(' ') + '  ' + cnt + '/7\n';
+  });
+
+  const el = document.getElementById('week-export');
+  el.value = text;
+  el.style.display = 'block';
+  el.select();
+}
+
+// MONTH
+function prevMonth() { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth()-1, 1); renderMonth(); }
+function nextMonth() { curMonth = new Date(curMonth.getFullYear(), curMonth.getMonth()+1, 1); renderMonth(); }
+
+function renderMonth() {
+  const year = curMonth.getFullYear();
+  const month = curMonth.getMonth();
+  const dim = new Date(year, month+1, 0).getDate();
+  document.getElementById('month-lbl').textContent = year + '년 ' + (month+1) + '월';
+
+  const att = {};
+  for(let day=1;day<=dim;day++) {
+    const d = new Date(year, month, day);
+    att[day] = loadAtt(ds(d)) || {};
+  }
+
+  let html = '<table style="font-size:11px;"><colgroup><col style="min-width:68px;"/>';
+  for(let d=1;d<=dim;d++) html += '<col style="width:18px;"/>';
+  html += '<col style="width:30px;"/></colgroup><tr><th style="text-align:left;"></th>';
+  for(let d=1;d<=dim;d++) {
+    const dow = new Date(year,month,d).getDay();
+    const col = dow===0?'color:#e05;':dow===6?'color:#1a7a5e;':'';
+    html += `<th style="${col};font-weight:400;font-size:10px;">${d}</th>`;
+  }
+  html += '<th>계</th></tr>';
+
+  MEMBERS.forEach(m => {
+    let cnt = 0;
+    html += `<tr><td class="name-col" style="font-size:12px;">${m.display}</td>`;
+    for(let d=1;d<=dim;d++) {
+      const ok = att[d]?.[m.id]?.certified;
+      if(ok) cnt++;
+      html += `<td style="font-size:10px;">${ok?'<span style="color:#1a7a5e;">✓</span>':'<span style="color:#ddd;">·</span>'}</td>`;
+    }
+    const cls = cnt>=20?'cnt-good':cnt>=12?'cnt-mid':'cnt-low';
+    html += `<td class="${cls}" style="font-size:12px;">${cnt}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('month-tbl').innerHTML = html;
+  document.getElementById('month-export').style.display = 'none';
+}
+
+function exportMonth() {
+  const year = curMonth.getFullYear();
+  const month = curMonth.getMonth();
+  const dim = new Date(year, month+1, 0).getDate();
+  const att = {};
+  for(let day=1;day<=dim;day++) att[day] = loadAtt(ds(new Date(year,month,day))) || {};
+
+  let text = '📚 클쥬리딩 ' + year + '년 ' + (month+1) + '월 현황\n';
+  text += '─'.repeat(26) + '\n';
+  MEMBERS.forEach(m => {
+    let cnt = 0;
+    for(let d=1;d<=dim;d++) if(att[d]?.[m.id]?.certified) cnt++;
+    const bar = '■'.repeat(cnt) + '□'.repeat(Math.max(0,22-cnt));
+    const name = (m.display + '          ').slice(0,9);
+    text += name + ' ' + bar + ' ' + cnt + '일\n';
+  });
+
+  const el = document.getElementById('month-export');
+  el.value = text;
+  el.style.display = 'block';
+  el.select();
+}
+
+// INIT
+const today = new Date();
+document.getElementById('date-sel').value = ds(today);
+document.getElementById('today-badge').textContent = ds(today);
+updateDayLabel();
+loadTodayState();
+</script>
+</body>
+</html>
