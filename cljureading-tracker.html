@@ -139,7 +139,7 @@ function getMonday(d) {
   return d;
 }
 
-function ds(d) { return d.toISOString().slice(0,10); }
+function ds(d) { const y=d.getFullYear(); const m=String(d.getMonth()+1).padStart(2,'0'); const day=String(d.getDate()).padStart(2,'0'); return y+'-'+m+'-'+day; }
 function fmt(d) { return (d.getMonth()+1) + '/' + d.getDate(); }
 function skAtt(dateStr) { return 'rtt_att_' + dateStr.replace(/-/g,''); }
 
