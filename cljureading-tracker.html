@@ -318,6 +318,8 @@ function exportWeek() {
   const att = {};
   dates.forEach(d => att[ds(d)] = loadAtt(ds(d)) || {});
 
+  function vw(s){let w=0;for(const c of s)w+=c.charCodeAt(0)>127?2:1;return w;}
+  function pad(s,n){return s+' '.repeat(Math.max(0,n-vw(s)));}
   let text = '📚 클쥬리딩 주간 현황\n';
   text += fmt(dates[0]) + '(월) ~ ' + fmt(dates[6]) + '(일)\n';
   text += '─'.repeat(26) + '\n';
@@ -329,8 +331,7 @@ function exportWeek() {
       if(ok) cnt++;
       row += ok ? DAYS[i] : '·';
     });
-    const name = (m.display + '          ').slice(0,9);
-    text += name + ' ' + row.split('').join(' ') + '  ' + cnt + '/7\n';
+    text += pad(m.display,12) + ' ' + row.split('').join(' ') + '  ' + cnt + '/7\n';
   });
 
   const el = document.getElementById('week-export');
@@ -388,14 +389,15 @@ function exportMonth() {
   const att = {};
   for(let day=1;day<=dim;day++) att[day] = loadAtt(ds(new Date(year,month,day))) || {};
 
+  function vw(s){let w=0;for(const c of s)w+=c.charCodeAt(0)>127?2:1;return w;}
+  function pad(s,n){return s+' '.repeat(Math.max(0,n-vw(s)));}
   let text = '📚 클쥬리딩 ' + year + '년 ' + (month+1) + '월 현황\n';
   text += '─'.repeat(26) + '\n';
   MEMBERS.forEach(m => {
     let cnt = 0;
     for(let d=1;d<=dim;d++) if(att[d]?.[m.id]?.certified) cnt++;
     const bar = '■'.repeat(cnt) + '□'.repeat(Math.max(0,22-cnt));
-    const name = (m.display + '          ').slice(0,9);
-    text += name + ' ' + bar + ' ' + cnt + '일\n';
+    text += pad(m.display,12) + ' ' + bar + ' ' + cnt + '일\n';
   });
 
   const el = document.getElementById('month-export');
