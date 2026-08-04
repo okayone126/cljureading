@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DalMath 인증</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f2f4f8;color:#1a1a2e;min-height:100vh;}
+.wrap{max-width:480px;margin:0 auto;padding:1.5rem 1rem;}
+header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
+h1{font-size:18px;font-weight:700;color:#1a1a2e;}
+.badge{font-size:11px;background:#e8eaf6;color:#5c6bc0;padding:3px 10px;border-radius:20px;font-weight:500;}
+.tabs{display:flex;border-bottom:1px solid #dde1f0;margin-bottom:1.5rem;}
+.tab-btn{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;cursor:pointer;font-size:14px;color:#888;margin-bottom:-1px;}
+.tab-btn.active{color:#5c6bc0;border-bottom-color:#5c6bc0;font-weight:600;}
+.section{display:none;}
+.section.active{display:block;}
+
+.date-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;background:#fff;border:1px solid #dde1f0;border-radius:10px;padding:10px 12px;}
+.date-row label{font-size:13px;color:#888;white-space:nowrap;}
+.date-row input[type=date]{border:none;background:none;font-size:14px;color:#1a1a2e;flex:1;cursor:pointer;}
+.date-row input[type=date]:focus{outline:none;}
+
+.name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem;}
+.name-btn{padding:10px;border:1.5px solid #dde1f0;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:#333;text-align:center;transition:all 0.15s;}
+.name-btn.selected{border-color:#5c6bc0;background:#e8eaf6;color:#5c6bc0;font-weight:600;}
+.name-btn.already{border-color:#ccc;background:#f5f5f5;color:#bbb;}
+.name-btn.already::after{content:'완료';font-size:10px;color:#5c6bc0;display:block;}
+
+.cert-btn{width:100%;padding:14px;border:none;border-radius:12px;background:#5c6bc0;color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:8px;}
+.cert-btn:disabled{background:#ccc;cursor:not-allowed;}
+.status-msg{font-size:13px;color:#888;text-align:center;min-height:20px;}
+.status-msg.ok{color:#5c6bc0;}
+.status-msg.err{color:#e05;}
+
+.card{background:#fff;border-radius:12px;padding:1rem;margin-bottom:1rem;border:1px solid #eee;}
+.card h3{font-size:12px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;}
+.cert-list{display:flex;flex-wrap:wrap;gap:6px;}
+.cert-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:#e8eaf6;color:#5c6bc0;}
+.not-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:#f5f5f5;color:#aaa;}
+.count-badge{font-size:28px;font-weight:700;color:#5c6bc0;text-align:center;padding:8px 0 4px;}
+.count-sub{font-size:12px;color:#aaa;text-align:center;margin-bottom:12px;}
+
+.week-nav{display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
+.nav-btn{width:32px;height:32px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:16px;}
+.week-label{flex:1;text-align:center;font-size:14px;font-weight:500;}
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;}
+th{padding:8px 4px;background:#f2f4f8;color:#888;font-weight:500;text-align:center;}
+td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
+.name-td{text-align:left;padding-left:10px;font-size:13px;}
+.check-ok{color:#5c6bc0;font-size:15px;}
+.check-no{color:#ddd;}
+.cnt-good{color:#5c6bc0;font-weight:600;}
+.cnt-mid{color:#e0a020;font-weight:600;}
+.cnt-low{color:#ccc;}
+.loading{text-align:center;color:#aaa;font-size:13px;padding:2rem;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🧮 DalMath</h1>
+    <span class="badge">달통수학 인증</span>
+  </header>
+
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('check',this)">인증하기</button>
+    <button class="tab-btn" onclick="switchTab('today',this)">오늘현황</button>
+    <button class="tab-btn" onclick="switchTab('week',this)">주간현황</button>
+  </div>
+
+  <!-- 인증하기 -->
+  <div id="sec-check" class="section active">
+    <div class="date-row">
+      <label>📅 날짜</label>
+      <input type="date" id="cert-date" oninput="onCertDateChange()" />
+    </div>
+    <p style="font-size:13px;color:#888;margin-bottom:12px;">이름을 선택하고 인증 버튼을 눌러주세요</p>
+    <div class="name-grid" id="name-grid"></div>
+    <button class="cert-btn" id="cert-btn" onclick="certify()" disabled>인증하기</button>
+    <p class="status-msg" id="status-msg"></p>
+  </div>
+
+  <!-- 오늘현황 -->
+  <div id="sec-today" class="section">
+    <div class="date-row">
+      <label>📅 날짜</label>
+      <input type="date" id="today-date" oninput="loadToday()" />
+    </div>
+    <div class="card">
+      <div class="count-badge" id="today-count">-</div>
+      <div class="count-sub">인증 완료</div>
+      <h3>완료</h3>
+      <div class="cert-list" id="cert-done"></div>
+    </div>
+    <div class="card">
+      <h3>미인증</h3>
+      <div class="cert-list" id="cert-not"></div>
+    </div>
+  </div>
+
+  <!-- 주간현황 -->
+  <div id="sec-week" class="section">
+    <div class="week-nav">
+      <button class="nav-btn" onclick="prevWeek()">‹</button>
+      <span class="week-label" id="week-label"></span>
+      <button class="nav-btn" onclick="nextWeek()">›</button>
+    </div>
+    <div class="tbl-wrap"><div id="week-table"><div class="loading">불러오는 중...</div></div></div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyA1CU9o4WJwrxQ1ogdr4FGblQLQHLArrb4",
+  authDomain: "cljureading.firebaseapp.com",
+  projectId: "cljureading",
+  storageBucket: "cljureading.firebasestorage.app",
+  messagingSenderId: "311673460953",
+  appId: "1:311673460953:web:a25ee095eea287155a06c8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const COLLECTION = 'math_attendance'; // 클쥬리딩과 분리
+const MEMBERS = ['세정','세라','낭빠','이지','룰룰','준','하얀'];
+const DAYS_MON = ['월','화','수','목','금','토','일'];
+
+let selectedName = null;
+let weekStart = getMonday(new Date());
+let certDayData = {};
+
+function localDS(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth()+1).padStart(2,'0');
+  const day = String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function getMonday(d) {
+  d = new Date(d);
+  const day = d.getDay();
+  d.setDate(d.getDate() - (day===0?6:day-1));
+  d.setHours(0,0,0,0);
+  return d;
+}
+function fmt(d) { return (d.getMonth()+1)+'/'+d.getDate(); }
+
+const todayStr = localDS(new Date());
+document.getElementById('cert-date').value = todayStr;
+document.getElementById('today-date').value = todayStr;
+
+const grid = document.getElementById('name-grid');
+MEMBERS.forEach(name => {
+  const btn = document.createElement('button');
+  btn.className = 'name-btn';
+  btn.id = 'btn-'+name;
+  btn.textContent = name;
+  btn.onclick = () => selectName(name);
+  grid.appendChild(btn);
+});
+
+window.onCertDateChange = async function() {
+  selectedName = null;
+  document.getElementById('cert-btn').disabled = true;
+  document.getElementById('status-msg').textContent = '';
+  const dateStr = document.getElementById('cert-date').value;
+  const snap = await getDoc(doc(db, COLLECTION, dateStr));
+  certDayData = snap.exists() ? snap.data() : {};
+  renderNameBtns();
+};
+
+function renderNameBtns() {
+  MEMBERS.forEach(name => {
+    const btn = document.getElementById('btn-'+name);
+    if (certDayData[name]) {
+      btn.className = 'name-btn already';
+      btn.textContent = name;
+    } else {
+      btn.className = 'name-btn' + (selectedName===name?' selected':'');
+      btn.textContent = name;
+    }
+  });
+}
+
+onCertDateChange();
+
+function selectName(name) {
+  if (certDayData[name]) return;
+  selectedName = name;
+  renderNameBtns();
+  document.getElementById('cert-btn').disabled = false;
+  document.getElementById('status-msg').textContent = '';
+}
+
+window.certify = async function() {
+  if (!selectedName) return;
+  const btn = document.getElementById('cert-btn');
+  const msg = document.getElementById('status-msg');
+  btn.disabled = true;
+  msg.textContent = '저장 중...';
+  msg.className = 'status-msg';
+  try {
+    const dateStr = document.getElementById('cert-date').value;
+    certDayData[selectedName] = true;
+    await setDoc(doc(db, COLLECTION, dateStr), certDayData);
+    msg.textContent = `${selectedName} 인증 완료! 🧮`;
+    msg.className = 'status-msg ok';
+    selectedName = null;
+    renderNameBtns();
+  } catch(e) {
+    msg.textContent = '오류가 발생했어요. 다시 시도해주세요.';
+    msg.className = 'status-msg err';
+    btn.disabled = false;
+  }
+};
+
+window.switchTab = function(name, btnEl) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-'+name).classList.add('active');
+  btnEl.classList.add('active');
+  if (name==='today') loadToday();
+  if (name==='week') renderWeek();
+};
+
+window.loadToday = async function() {
+  const dateStr = document.getElementById('today-date').value;
+  const snap = await getDoc(doc(db, COLLECTION, dateStr));
+  const data = snap.exists() ? snap.data() : {};
+  const done = MEMBERS.filter(m => data[m]);
+  const not = MEMBERS.filter(m => !data[m]);
+  document.getElementById('today-count').textContent = `${done.length} / ${MEMBERS.length}명`;
+  document.getElementById('cert-done').innerHTML = done.map(m => `<span class="cert-chip">${m}</span>`).join('') || '<span style="color:#ccc;font-size:12px;">아직 없어요</span>';
+  document.getElementById('cert-not').innerHTML = not.map(m => `<span class="not-chip">${m}</span>`).join('');
+};
+
+window.prevWeek = function() { weekStart.setDate(weekStart.getDate()-7); renderWeek(); };
+window.nextWeek = function() { weekStart.setDate(weekStart.getDate()+7); renderWeek(); };
+
+async function renderWeek() {
+  const dates = [];
+  for (let i=0;i<7;i++) {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate()+i);
+    dates.push(d);
+  }
+  document.getElementById('week-label').textContent = `${fmt(dates[0])}(월) ~ ${fmt(dates[6])}(일)`;
+  document.getElementById('week-table').innerHTML = '<div class="loading">불러오는 중...</div>';
+
+  const att = {};
+  for (const d of dates) {
+    const snap = await getDoc(doc(db, COLLECTION, localDS(d)));
+    att[localDS(d)] = snap.exists() ? snap.data() : {};
+  }
+
+  const todayStr = localDS(new Date());
+  let html = '<table><tr><th style="text-align:left;padding-left:10px;">멤버</th>';
+  dates.forEach((d,i) => {
+    const isToday = localDS(d)===todayStr;
+    html += `<th style="${isToday?'color:#5c6bc0;':i>=5?'color:#bbb;':''}">${DAYS_MON[i]}<br><span style="font-weight:400;font-size:10px;">${fmt(d)}</span></th>`;
+  });
+  html += '<th>계</th></tr>';
+
+  MEMBERS.forEach(m => {
+    let cnt = 0;
+    html += `<tr><td class="name-td">${m}</td>`;
+    dates.forEach(d => {
+      const ok = att[localDS(d)]?.[m];
+      if(ok) cnt++;
+      html += `<td>${ok?'<span class="check-ok">✓</span>':'<span class="check-no">·</span>'}</td>`;
+    });
+    const cls = cnt>=5?'cnt-good':cnt>=3?'cnt-mid':'cnt-low';
+    html += `<td class="${cls}">${cnt}</td></tr>`;
+  });
+  html += '</table>';
+  document.getElementById('week-table').innerHTML = html;
+}
+</script>
+</body>
+</html>
