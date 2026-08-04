@@ -9,22 +9,25 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f7f6f2;color:#1a1a18;min-height:100vh;}
 .wrap{max-width:480px;margin:0 auto;padding:1.5rem 1rem;}
 header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;}
-h1{font-size:18px;font-weight:700;color:#1a1a18;}
-.date-tag{font-size:12px;color:#888;background:#eee;padding:3px 8px;border-radius:20px;}
-
-/* 탭 */
+h1{font-size:18px;font-weight:700;}
 .tabs{display:flex;border-bottom:1px solid #e0dfd8;margin-bottom:1.5rem;}
 .tab-btn{flex:1;background:none;border:none;border-bottom:2px solid transparent;padding:10px 0;cursor:pointer;font-size:14px;color:#888;margin-bottom:-1px;}
 .tab-btn.active{color:#1a7a5e;border-bottom-color:#1a7a5e;font-weight:600;}
-
-/* 섹션 */
 .section{display:none;}
 .section.active{display:block;}
+
+/* 날짜 선택 */
+.date-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;background:#fff;border:1px solid #e0dfd8;border-radius:10px;padding:10px 12px;}
+.date-row label{font-size:13px;color:#888;white-space:nowrap;}
+.date-row input[type=date]{border:none;background:none;font-size:14px;color:#1a1a18;flex:1;cursor:pointer;}
+.date-row input[type=date]:focus{outline:none;}
 
 /* 이름 선택 */
 .name-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.5rem;}
 .name-btn{padding:10px;border:1.5px solid #e0dfd8;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:#333;text-align:center;transition:all 0.15s;}
 .name-btn.selected{border-color:#1a7a5e;background:#e8f5f0;color:#1a7a5e;font-weight:600;}
+.name-btn.already{border-color:#ccc;background:#f5f5f5;color:#bbb;position:relative;}
+.name-btn.already::after{content:'완료';font-size:10px;color:#1a7a5e;display:block;}
 
 /* 인증 버튼 */
 .cert-btn{width:100%;padding:14px;border:none;border-radius:12px;background:#1a7a5e;color:#fff;font-size:16px;font-weight:600;cursor:pointer;margin-bottom:8px;}
@@ -34,18 +37,19 @@ h1{font-size:18px;font-weight:700;color:#1a1a18;}
 .status-msg.err{color:#e05;}
 
 /* 오늘 현황 */
-.today-summary{background:#fff;border-radius:12px;padding:1rem;margin-bottom:1.5rem;border:1px solid #eee;}
-.today-summary h3{font-size:13px;color:#888;margin-bottom:10px;}
+.card{background:#fff;border-radius:12px;padding:1rem;margin-bottom:1rem;border:1px solid #eee;}
+.card h3{font-size:12px;color:#aaa;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px;}
 .cert-list{display:flex;flex-wrap:wrap;gap:6px;}
 .cert-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:#e8f5f0;color:#1a7a5e;}
 .not-chip{font-size:12px;padding:4px 10px;border-radius:20px;background:#f5f5f5;color:#aaa;}
-.count-badge{font-size:24px;font-weight:700;color:#1a7a5e;text-align:center;padding:8px 0;}
-.count-sub{font-size:12px;color:#aaa;text-align:center;margin-top:-4px;margin-bottom:12px;}
+.count-badge{font-size:28px;font-weight:700;color:#1a7a5e;text-align:center;padding:8px 0 4px;}
+.count-sub{font-size:12px;color:#aaa;text-align:center;margin-bottom:12px;}
 
-/* 주간 현황 (관리자) */
+/* 주간 현황 */
 .week-nav{display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
 .nav-btn{width:32px;height:32px;border:1px solid #ddd;border-radius:8px;background:#fff;cursor:pointer;font-size:16px;}
 .week-label{flex:1;text-align:center;font-size:14px;font-weight:500;}
+.tbl-wrap{overflow-x:auto;}
 table{width:100%;border-collapse:collapse;font-size:12px;background:#fff;border-radius:12px;overflow:hidden;}
 th{padding:8px 4px;background:#f7f6f2;color:#888;font-weight:500;text-align:center;}
 td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
@@ -55,16 +59,13 @@ td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
 .cnt-good{color:#1a7a5e;font-weight:600;}
 .cnt-mid{color:#e0a020;font-weight:600;}
 .cnt-low{color:#ccc;}
-.admin-toggle{font-size:12px;color:#aaa;text-align:right;margin-bottom:8px;cursor:pointer;text-decoration:underline;}
 .loading{text-align:center;color:#aaa;font-size:13px;padding:2rem;}
-.week-export-btn{width:100%;margin-top:10px;padding:10px;border:1px solid #ddd;border-radius:10px;background:#fff;cursor:pointer;font-size:14px;color:#333;}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <h1>📚 클쥬리딩</h1>
-    <span class="date-tag" id="today-tag"></span>
   </header>
 
   <div class="tabs">
@@ -75,6 +76,10 @@ td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
 
   <!-- 인증하기 -->
   <div id="sec-check" class="section active">
+    <div class="date-row">
+      <label>📅 날짜</label>
+      <input type="date" id="cert-date" oninput="onCertDateChange()" />
+    </div>
     <p style="font-size:13px;color:#888;margin-bottom:12px;">이름을 선택하고 인증 버튼을 눌러주세요</p>
     <div class="name-grid" id="name-grid"></div>
     <button class="cert-btn" id="cert-btn" onclick="certify()" disabled>인증하기</button>
@@ -83,13 +88,17 @@ td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
 
   <!-- 오늘현황 -->
   <div id="sec-today" class="section">
-    <div class="today-summary">
+    <div class="date-row">
+      <label>📅 날짜</label>
+      <input type="date" id="today-date" oninput="loadToday()" />
+    </div>
+    <div class="card">
       <div class="count-badge" id="today-count">-</div>
-      <div class="count-sub">오늘 인증 완료</div>
-      <h3>인증 완료</h3>
+      <div class="count-sub">인증 완료</div>
+      <h3>완료</h3>
       <div class="cert-list" id="cert-done"></div>
     </div>
-    <div class="today-summary">
+    <div class="card">
       <h3>미인증</h3>
       <div class="cert-list" id="cert-not"></div>
     </div>
@@ -102,13 +111,13 @@ td{padding:7px 4px;border-top:1px solid #f0f0ee;text-align:center;}
       <span class="week-label" id="week-label"></span>
       <button class="nav-btn" onclick="nextWeek()">›</button>
     </div>
-    <div id="week-table"><div class="loading">불러오는 중...</div></div>
+    <div class="tbl-wrap"><div id="week-table"><div class="loading">불러오는 중...</div></div></div>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA1CU9o4WJwrxQ1ogdr4FGblQLQHLArrb4",
@@ -123,13 +132,12 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const MEMBERS = ['낭빠','통통','하준맘세정','하이쭌','도브로맘','방울킴','말리꽃','임보영','코코박','다다다맘','핑크돼지','ezy'];
-const DAYS = ['일','월','화','수','목','금','토'];
 const DAYS_MON = ['월','화','수','목','금','토','일'];
 
 let selectedName = null;
 let weekStart = getMonday(new Date());
+let certDayData = {};
 
-// 날짜 유틸
 function localDS(d) {
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,'0');
@@ -145,24 +153,53 @@ function getMonday(d) {
 }
 function fmt(d) { return (d.getMonth()+1)+'/'+d.getDate(); }
 
-// 오늘 날짜 표시
-const today = new Date();
-document.getElementById('today-tag').textContent = localDS(today);
+// 날짜 초기값
+const todayStr = localDS(new Date());
+document.getElementById('cert-date').value = todayStr;
+document.getElementById('today-date').value = todayStr;
 
 // 이름 버튼 생성
 const grid = document.getElementById('name-grid');
 MEMBERS.forEach(name => {
   const btn = document.createElement('button');
   btn.className = 'name-btn';
+  btn.id = 'btn-'+name;
   btn.textContent = name;
   btn.onclick = () => selectName(name, btn);
   grid.appendChild(btn);
 });
 
+// 인증 날짜 변경시 기존 데이터 로드
+window.onCertDateChange = async function() {
+  selectedName = null;
+  document.getElementById('cert-btn').disabled = true;
+  document.getElementById('status-msg').textContent = '';
+  const dateStr = document.getElementById('cert-date').value;
+  const snap = await getDoc(doc(db, 'attendance', dateStr));
+  certDayData = snap.exists() ? snap.data() : {};
+  renderNameBtns();
+};
+
+function renderNameBtns() {
+  MEMBERS.forEach(name => {
+    const btn = document.getElementById('btn-'+name);
+    if (certDayData[name]) {
+      btn.className = 'name-btn already';
+      btn.textContent = name;
+    } else {
+      btn.className = 'name-btn' + (selectedName===name?' selected':'');
+      btn.textContent = name;
+    }
+  });
+}
+
+// 초기 로드
+onCertDateChange();
+
 function selectName(name, btn) {
+  if (certDayData[name]) return; // 이미 인증한 사람
   selectedName = name;
-  document.querySelectorAll('.name-btn').forEach(b => b.classList.remove('selected'));
-  btn.classList.add('selected');
+  renderNameBtns();
   document.getElementById('cert-btn').disabled = false;
   document.getElementById('status-msg').textContent = '';
 }
@@ -177,16 +214,14 @@ window.certify = async function() {
   msg.className = 'status-msg';
 
   try {
-    const dateStr = localDS(today);
+    const dateStr = document.getElementById('cert-date').value;
     const docRef = doc(db, 'attendance', dateStr);
-    const snap = await getDoc(docRef);
-    const data = snap.exists() ? snap.data() : {};
-    data[selectedName] = true;
-    await setDoc(docRef, data);
+    certDayData[selectedName] = true;
+    await setDoc(docRef, certDayData);
     msg.textContent = `${selectedName} 인증 완료! 📚`;
     msg.className = 'status-msg ok';
-    document.querySelectorAll('.name-btn').forEach(b => b.classList.remove('selected'));
     selectedName = null;
+    renderNameBtns();
   } catch(e) {
     msg.textContent = '오류가 발생했어요. 다시 시도해주세요.';
     msg.className = 'status-msg err';
@@ -204,18 +239,17 @@ window.switchTab = function(name, btnEl) {
   if (name==='week') renderWeek();
 };
 
-// 오늘현황 로드
-async function loadToday() {
-  const dateStr = localDS(today);
+// 오늘현황
+window.loadToday = async function() {
+  const dateStr = document.getElementById('today-date').value;
   const snap = await getDoc(doc(db, 'attendance', dateStr));
   const data = snap.exists() ? snap.data() : {};
   const done = MEMBERS.filter(m => data[m]);
   const not = MEMBERS.filter(m => !data[m]);
-
   document.getElementById('today-count').textContent = `${done.length} / ${MEMBERS.length}명`;
   document.getElementById('cert-done').innerHTML = done.map(m => `<span class="cert-chip">${m}</span>`).join('') || '<span style="color:#ccc;font-size:12px;">아직 없어요</span>';
   document.getElementById('cert-not').innerHTML = not.map(m => `<span class="not-chip">${m}</span>`).join('');
-}
+};
 
 // 주간현황
 window.prevWeek = function() { weekStart.setDate(weekStart.getDate()-7); renderWeek(); };
@@ -237,7 +271,7 @@ async function renderWeek() {
     att[localDS(d)] = snap.exists() ? snap.data() : {};
   }
 
-  const todayStr = localDS(today);
+  const todayStr = localDS(new Date());
   let html = '<table><tr><th style="text-align:left;padding-left:10px;">멤버</th>';
   dates.forEach((d,i) => {
     const isToday = localDS(d)===todayStr;
